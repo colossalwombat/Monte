@@ -1,55 +1,69 @@
+import sys, re
 import numpy as np
-import sys
 from scipy import optimize as op
 
-#makes life easier later on
-def evaluate(x):
-	return (np.exp(x * x))
+#function to be integrated
+def evaluate(function, x):
+    return float(eval(function))
 
 #define a stochastic analyzer because it's more fun
-def random_optimize(maximum, a, b):
+def random_optimize(function, maximum, a, b):
 
-	initial = maximum
+    initial = maximum
 
-	#using a sample size of 10000
-	for i in range(10000):
-		#generate the random value
-		x = (b-a)* np.random.random_sample() + a
-		f_x = evaluate(x)
+    #using a sample size of 10000
+    for i in range(10000):
+        #generate the random value
+        x = (b-a)* np.random.random_sample() + a
+        f_x = evaluate(function, x)
 
-		if f_x > maximum + 0.1: #define an error tolerance of 0.1
-			maximum = f_x
+        if f_x > maximum + 0.1: #define an error tolerance of 0.1
+            maximum = f_x
 
-	#if we found a better guess
-	if initial != maximum:
-		random_optimize(2*maximum, a, b)
-	else:
-		return 2*maximum #scale by a factor of 2 to be safe.
+    #if we found a better guess
+    if initial != maximum:
+        random_optimize(function, 1.1*maximum, a, b)
+    else:
+        return 1.1*maximum #scale by a factor of 1.1 to be safe.
 
-def monte_integrate(a, b, N):
+def parse_input(input_string):
 
-	hits = 0
+    #replaces text inputs as their numpy equivalents
+    input_string = input_string.replace('e', 'np.e')
+    input_string = input_string.replace('pi', 'np.pi')
+    input_string = input_string.replace('^', '**')
+    input_string = input_string.replace('sin', 'np.sin')
+    input_string = input_string.replace('cos', 'np.cos')
+    input_string = input_string.replace('arctan', 'np.arctan')
+    input_string = input_string.replace('arccos', 'np.arccos')
 
-	#evaluate the endpoints outside of the recursive loop
-	max_ab = max(evaluate(a), evaluate(b))
+    return input_string
 
-	f_max = random_optimize(max_ab, a, b)
+def monte_integrate(function, a, b,  N):
 
-	print(f_max)
-	for i in range(N):
+    hits = 0
 
-		#generate the random x value
-		x = (b-a)* np.random.random_sample() + a
-		y = f_max*np.random.random_sample()
-		f_x = evaluate(x)
+    #evaluate the endpoints outside of the recursive loop
+    max_ab = max(evaluate(function, a), evaluate(function, b))
 
-		if y <= f_x:
-			hits += 1
+    f_max = random_optimize(function, max_ab, a, b)
 
-		print("The integral is approximately: " + str(float(hits / (i+ 1)) * ((b-a) * f_max)) + " after " + str(i) + " samples.", end='\r')
+    print("The maximum value of f on [a,b] is approximately: " + str(f_max))
 
-try:
-	monte_integrate(float(sys.argv[1]), float(sys.argv[2]), 10 ** int(sys.argv[3]))
-	print("")
-except:
-	print("")
+    for i in range(N):
+
+        #generate the random x value
+        x = (b-a)* np.random.random_sample() + a
+        y = f_max*np.random.random_sample()
+        f_x = evaluate(function, x)
+
+        if y <= f_x:
+            hits += 1
+
+        print("The integral is approximately: " + str(float(hits / (i+ 1)) * ((b-a) * f_max)) + " after " + str(i) + " samples.      ", end='\r')
+
+
+function= parse_input(str(sys.argv[1]))
+print("The function to integrate was parsed into numpy format as " + str(function))
+monte_integrate(function, float(sys.argv[2]), float(sys.argv[3]),  10 ** int(sys.argv[4]))
+print("")
